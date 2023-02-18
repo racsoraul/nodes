@@ -19,7 +19,7 @@ function NodeSystem() {
     useEffect(() => {
         if (svgContainerRef.current) {
             const path = document.createElementNS("http://www.w3.org/2000/svg", "path")
-            path.setAttribute("d", "M 100,100 L 700,300")
+            path.setAttribute("d", "M 0,0 L 700,300")
             path.setAttribute("id", "asd")
             svgContainerRef.current.appendChild(path)
             return () => path.remove()

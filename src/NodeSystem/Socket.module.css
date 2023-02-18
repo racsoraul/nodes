@@ -1,0 +1,32 @@
+.container {
+    margin: 10px 0px;
+    display: flex;
+    align-items: center;
+}
+
+.alignToRightBorder {
+    flex-direction: row-reverse;
+    margin-right: -12px;
+}
+
+.alignToLeftBorder {
+    margin-left: -12px;
+}
+
+.connector {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    border-style: solid;
+    border-color: #000000;
+}
+
+.valueInput {
+    display: flex;
+    margin-left: 5px;
+}
+
+.valueOutput {
+    display: flex;
+    margin-right: 5px;
+}

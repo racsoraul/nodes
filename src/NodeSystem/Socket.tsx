@@ -2,19 +2,20 @@ import { Variable, VariableType } from "./Node"
 import classes from "./Socket.module.css"
 
 export const enum SocketType {
-    Input = "Input",
-    Output = "Output"
+    Input,
+    Output
 }
 
 interface SocketProps {
     type: SocketType
     variable: Variable
+    active: boolean
 }
 
-function Socket({ type, variable }: SocketProps) {
+function Socket({ type, variable, active }: SocketProps) {
     return <div className={`${classes.container} ${type === SocketType.Output ? classes.alignToRightBorder : classes.alignToLeftBorder}`}>
         <div
-            className={classes.connector}
+            className={`${classes.connector} ${active ? classes.active : ""}`}
             style={{ backgroundColor: getColorFromType(variable.type) }}
         />
         {renderValue(type, variable)}

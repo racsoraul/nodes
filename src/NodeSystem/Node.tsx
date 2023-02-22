@@ -22,7 +22,7 @@ interface BaseNodeProps {
     title: string
     inputs: Variable[]
     outputs: Variable[]
-    recentlyActive: number
+    activeNodeID: number
     onCreation: (ref: NodeRef) => void
     onActive: (id: number) => void
 }
@@ -44,12 +44,12 @@ function Node(props: BaseNodeProps) {
     }, [])
 
     useEffect(() => {
-        if (props.recentlyActive === id.current) {
+        if (isActive(id.current, props.activeNodeID)) {
             setCurrentZIndex(2)
         } else {
             setCurrentZIndex(1)
         }
-    }, [props.recentlyActive])
+    }, [props.activeNodeID])
 
     const handleMouseDown = (event: MouseEvent<HTMLDivElement>) => {
         if (!nodeRef.current) {
@@ -75,15 +75,20 @@ function Node(props: BaseNodeProps) {
         if (!nodeRef.current) {
             return
         }
-        setCurrentPos({
+        const nextPos = {
             x: offset.x + event.clientX,
             y: offset.y + event.clientY,
+        }
+        console.log(nextPos);
+        setCurrentPos({
+            x: nextPos.x < 0 ? 0 : nextPos.x,
+            y: nextPos.y < 0 ? 0 : nextPos.y,
         })
     }
 
     return <div
         ref={nodeRef}
-        className={classes.container}
+        className={`${classes.container} ${isActive(id.current, props.activeNodeID) ? classes.active : ""}`}
         style={{
             left: currentPos.x,
             top: currentPos.y,
@@ -103,7 +108,12 @@ function Node(props: BaseNodeProps) {
         <div className={classes.body}>
             <div className={classes.outputs}>
                 {props.outputs.map(
-                    (output, index) => <Socket key={index} type={SocketType.Output} variable={output} />
+                    (output, index) => <Socket
+                        key={index}
+                        active={isActive(id.current, props.activeNodeID)}
+                        type={SocketType.Output}
+                        variable={output}
+                    />
                 )}
             </div>
             <div className={classes.options}>
@@ -116,7 +126,12 @@ function Node(props: BaseNodeProps) {
             </div>
             <div className={classes.inputs}>
                 {props.inputs.map(
-                    (input, index) => <Socket key={index} type={SocketType.Input} variable={input} />
+                    (input, index) => <Socket
+                        key={index}
+                        active={isActive(id.current, props.activeNodeID)}
+                        type={SocketType.Input}
+                        variable={input}
+                    />
                 )}
             </div>
         </div>
@@ -124,3 +139,7 @@ function Node(props: BaseNodeProps) {
 }
 
 export default Node
+
+function isActive(id: number, targetID: number): boolean {
+    return id === targetID
+}

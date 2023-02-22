@@ -8,18 +8,23 @@
     border-radius: 5px;
     border-style: solid;
     border-color: #000000;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.active {
+    border-color: #ffffff;
 }
 
 .header {
     text-align: center;
     color: #ffffff;
-    cursor: grab
+    cursor: grab;
+    background-color: rgb(129, 73, 73);
 }
 
 .header h1 {
-    margin: 2px;
-    border-bottom-style: solid;
-    border-bottom-color: #000000;
+    margin: 0;
     -webkit-user-select: none;
     user-select: none;
     font-size: 20px;

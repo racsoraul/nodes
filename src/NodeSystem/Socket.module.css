@@ -21,6 +21,10 @@
     border-color: #000000;
 }
 
+.active {
+    border-color: #ffffff;
+}
+
 .valueInput {
     display: flex;
     margin-left: 5px;

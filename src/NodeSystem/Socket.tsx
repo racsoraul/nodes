@@ -1,4 +1,5 @@
 import { Variable, VariableType } from "./Node"
+import { ElementType } from "./NodeSystem"
 import classes from "./Socket.module.css"
 
 export const enum SocketType {
@@ -7,23 +8,32 @@ export const enum SocketType {
 }
 
 interface SocketProps {
+    nodeID: number
+    index: number
     type: SocketType
     variable: Variable
     active: boolean
 }
 
-function Socket({ type, variable, active }: SocketProps) {
-    return <div className={`${classes.container} ${type === SocketType.Output ? classes.alignToRightBorder : classes.alignToLeftBorder}`}>
+function Socket(props: SocketProps) {
+    return <div className={`${classes.container} ${props.type === SocketType.Output ? classes.alignToRightBorder : classes.alignToLeftBorder}`}>
         <div
-            className={`${classes.connector} ${active ? classes.active : ""}`}
-            style={{ backgroundColor: getColorFromType(variable.type) }}
+            id={`${props.nodeID}_${props.type}_${props.index}`}
+            data-element-type={ElementType.Socket}
+            className={`${classes.connector} ${props.active ? classes.active : ""}`}
+            style={{ backgroundColor: getColorFromType(props.variable.type) }}
         />
-        {renderValue(type, variable)}
+        {renderValue(props.type, props.variable)}
     </div>
 }
 
 export default Socket
 
+/**
+ * Returns the hex color associated to the variable type.
+ * @param type Variable type.
+ * @returns Hex color for the given variable type.
+ */
 function getColorFromType(type: VariableType): string {
     switch (type) {
         case VariableType.Number:

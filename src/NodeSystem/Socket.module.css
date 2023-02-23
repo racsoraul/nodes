@@ -19,6 +19,7 @@
     border-radius: 50%;
     border-style: solid;
     border-color: #000000;
+    cursor: pointer;
 }
 
 .active {

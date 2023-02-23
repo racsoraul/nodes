@@ -1,7 +1,7 @@
 import { MouseEvent, useEffect, useRef, useState } from "react"
-import classes from "./Node.module.css"
 import Socket, { SocketType } from "./Socket"
 import { NodeRef } from "./NodeSystem"
+import classes from "./Node.module.css"
 
 export const enum VariableType {
     Number = "Number",
@@ -13,9 +13,17 @@ export interface Variable {
     name: string
 }
 
-interface Coordinate {
+export interface Coordinate {
     x: number
     y: number
+}
+
+export interface NodeDragEvent {
+    id: number,
+    position: Coordinate,
+    sockets?: {
+        [socketID: string]: Coordinate
+    }
 }
 
 interface BaseNodeProps {
@@ -25,6 +33,7 @@ interface BaseNodeProps {
     activeNodeID: number
     onCreation: (ref: NodeRef) => void
     onActive: (id: number) => void
+    onDragging: (event: NodeDragEvent) => void
 }
 
 function Node(props: BaseNodeProps) {
@@ -41,7 +50,7 @@ function Node(props: BaseNodeProps) {
             id: id.current,
             connections: [],
         })
-    }, [])
+    }, [props.onCreation])
 
     useEffect(() => {
         if (isActive(id.current, props.activeNodeID)) {
@@ -79,14 +88,18 @@ function Node(props: BaseNodeProps) {
             x: offset.x + event.clientX,
             y: offset.y + event.clientY,
         }
-        console.log(nextPos);
         setCurrentPos({
             x: nextPos.x < 0 ? 0 : nextPos.x,
             y: nextPos.y < 0 ? 0 : nextPos.y,
         })
+        props.onDragging({
+            id: id.current,
+            position: nextPos,
+        })
     }
 
     return <div
+        id={`${id.current}`}
         ref={nodeRef}
         className={`${classes.container} ${isActive(id.current, props.activeNodeID) ? classes.active : ""}`}
         style={{
@@ -110,6 +123,8 @@ function Node(props: BaseNodeProps) {
                 {props.outputs.map(
                     (output, index) => <Socket
                         key={index}
+                        nodeID={id.current}
+                        index={index}
                         active={isActive(id.current, props.activeNodeID)}
                         type={SocketType.Output}
                         variable={output}
@@ -128,6 +143,8 @@ function Node(props: BaseNodeProps) {
                 {props.inputs.map(
                     (input, index) => <Socket
                         key={index}
+                        nodeID={id.current}
+                        index={index}
                         active={isActive(id.current, props.activeNodeID)}
                         type={SocketType.Input}
                         variable={input}
@@ -140,6 +157,13 @@ function Node(props: BaseNodeProps) {
 
 export default Node
 
+/**
+ * Returns whether the current Node of `id` is active or not.
+ * 
+ * @param id of current Node.
+ * @param targetID ID of the current active Node.
+ * @returns A boolean indicating whether the current Node is active or not.
+ */
 function isActive(id: number, targetID: number): boolean {
     return id === targetID
 }

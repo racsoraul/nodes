@@ -1,6 +1,5 @@
 import { MouseEvent, useEffect, useRef, useState } from "react"
 import Socket, { SocketType } from "./Socket"
-import { NodeRef } from "./NodeSystem"
 import classes from "./Node.module.css"
 
 export const enum VariableType {
@@ -31,29 +30,28 @@ interface BaseNodeProps {
     inputs: Variable[]
     outputs: Variable[]
     activeNodeID: number
-    onCreation: (ref: NodeRef) => void
+    onCreation: () => void
     onActive: (id: number) => void
     onDragging: (event: NodeDragEvent) => void
 }
 
 function Node(props: BaseNodeProps) {
     const nodeRef = useRef<HTMLDivElement>(null)
+    const [id, setId] = useState(0)
     const [offset, setOffet] = useState<Coordinate>({ x: 0, y: 0 })
     const [currentPos, setCurrentPos] = useState<Coordinate>({ x: 0, y: 0 })
     const [isDragging, setIsDragging] = useState(false)
     const [currentZIndex, setCurrentZIndex] = useState(1)
-    const id = useRef(0)
 
     useEffect(() => {
-        id.current = Math.floor(Math.random() * 1000)
-        props.onCreation({
-            id: id.current,
-            connections: [],
-        })
+        const newId = Math.floor(Math.random() * 1000)
+        setId(newId)
+        // TODO: onCreation Event
+        props.onCreation()
     }, [props.onCreation])
 
     useEffect(() => {
-        if (isActive(id.current, props.activeNodeID)) {
+        if (isActive(id, props.activeNodeID)) {
             setCurrentZIndex(2)
         } else {
             setCurrentZIndex(1)
@@ -65,7 +63,7 @@ function Node(props: BaseNodeProps) {
             return
         }
         setIsDragging(true)
-        props.onActive(id.current)
+        props.onActive(id)
         setOffet({
             x: nodeRef.current.offsetLeft - event.clientX,
             y: nodeRef.current.offsetTop - event.clientY,
@@ -93,15 +91,15 @@ function Node(props: BaseNodeProps) {
             y: nextPos.y < 0 ? 0 : nextPos.y,
         })
         props.onDragging({
-            id: id.current,
+            id: id,
             position: nextPos,
         })
     }
 
     return <div
-        id={`${id.current}`}
+        id={`${id}`}
         ref={nodeRef}
-        className={`${classes.container} ${isActive(id.current, props.activeNodeID) ? classes.active : ""}`}
+        className={`${classes.container} ${isActive(id, props.activeNodeID) ? classes.active : ""}`}
         style={{
             left: currentPos.x,
             top: currentPos.y,
@@ -123,9 +121,9 @@ function Node(props: BaseNodeProps) {
                 {props.outputs.map(
                     (output, index) => <Socket
                         key={index}
-                        nodeID={id.current}
+                        nodeID={id}
                         index={index}
-                        active={isActive(id.current, props.activeNodeID)}
+                        active={isActive(id, props.activeNodeID)}
                         type={SocketType.Output}
                         variable={output}
                     />
@@ -143,9 +141,9 @@ function Node(props: BaseNodeProps) {
                 {props.inputs.map(
                     (input, index) => <Socket
                         key={index}
-                        nodeID={id.current}
+                        nodeID={id}
                         index={index}
-                        active={isActive(id.current, props.activeNodeID)}
+                        active={isActive(id, props.activeNodeID)}
                         type={SocketType.Input}
                         variable={input}
                     />

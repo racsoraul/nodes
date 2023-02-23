@@ -18,7 +18,7 @@ interface SocketProps {
 function Socket(props: SocketProps) {
     return <div className={`${classes.container} ${props.type === SocketType.Output ? classes.alignToRightBorder : classes.alignToLeftBorder}`}>
         <div
-            id={`${props.nodeID}_${props.type}_${props.index}`}
+            id={`${props.nodeID}_${props.type}_${props.variable.type}_${props.index}`}
             data-element-type={ElementType.Socket}
             className={`${classes.connector} ${props.active ? classes.active : ""}`}
             style={{ backgroundColor: getColorFromType(props.variable.type) }}
@@ -54,5 +54,28 @@ function renderValue(type: SocketType, variable: Variable) {
 
         default:
             break;
+    }
+}
+
+export function getNodeFromSocketID(id: string): HTMLElement | null {
+    return document.getElementById(id.split("_")[0])
+}
+
+export function getNodeIDFromSocketID(id: string): number {
+    return Number(id.split("_")[0])
+}
+
+export function getTypeFromSocketID(id: string): SocketType {
+    if (id.length == 0) {
+        throw new Error("Invalid socket ID")
+    }
+    const socketType = Number(id.split("_")[1])
+    switch (socketType) {
+        case SocketType.Input:
+            return SocketType.Input
+        case SocketType.Output:
+            return SocketType.Output
+        default:
+            throw new Error("Invalid socket type")
     }
 }

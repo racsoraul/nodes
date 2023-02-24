@@ -1,8 +1,9 @@
-import { MouseEvent, RefObject, useCallback, useRef, useState } from "react"
+import { MouseEvent, useRef, useState } from "react"
 import Node, { Coordinate, NodeDragEvent, VariableType } from "./Node"
 import { SocketType, getNodeFromSocketID, getNodeIDFromSocketID, getTypeFromSocketID } from "./Socket"
+import { ActiveConnector, Connector } from "./Connector"
 import useMouseCoords from "../hooks/useMouseCoords"
-import classes from "./NodeSystem.module.css"
+import classes from "./NodesSystem.module.css"
 
 export const enum ElementType {
     Socket = "Socket",
@@ -14,14 +15,13 @@ interface Socket {
     position: Coordinate
 }
 
-interface ConnectionLine {
+export interface ActiveSocket {
+    origin: Socket
+}
+interface ConnectorState {
     id: string
     from: Socket
     to: Socket
-}
-
-interface ActiveSocket {
-    origin: Socket
 }
 
 interface NodeSystemProps {
@@ -29,16 +29,14 @@ interface NodeSystemProps {
     height: number
 }
 
-function NodeSystem(props: NodeSystemProps) {
+function NodesSystem(props: NodeSystemProps) {
     const svgContainerRef = useRef<SVGSVGElement>(null)
     const nodesContainerRef = useRef<HTMLDivElement>(null)
     const [activeNodeID, setActiveNodeID] = useState(0)
     const [activeSocket, setActiveSocket] = useState<ActiveSocket | null>(null)
-    const [connectionLines, setConnectionLines] = useState<ConnectionLine[]>([])
+    const [connectors, setConnectors] = useState<ConnectorState[]>([])
 
     const [mouseX, mouseY] = useMouseCoords(nodesContainerRef)
-
-    const handleOnNewNode = useCallback(() => { }, [])
 
     const handleOnSetActive = (id: number) => {
         setActiveNodeID(id)
@@ -99,26 +97,71 @@ function NodeSystem(props: NodeSystemProps) {
                 return
             }
 
-            const cl: ConnectionLine = {
-                id: `${activeSocket.origin.id}:${socketID}`,
-                from: targetSocket.type === SocketType.Input
-                    ? targetSocket
-                    : activeSocket.origin,
-                to: targetSocket.type !== SocketType.Input
-                    ? targetSocket
-                    : activeSocket.origin,
+            const fromSocket = targetSocket.type === SocketType.Input
+                ? targetSocket
+                : activeSocket.origin
+            const toSocket = targetSocket.type !== SocketType.Input
+                ? targetSocket
+                : activeSocket.origin
+
+            const cl: ConnectorState = {
+                id: `${fromSocket.id}:${toSocket.id}`,
+                from: fromSocket,
+                to: toSocket,
             }
 
-            setConnectionLines(prevState => {
+            // Prevent duplicate connections.
+            for (let index = 0; index < connectors.length; index++) {
+                if (connectors[index].id === cl.id) {
+                    setActiveSocket(null)
+                    return
+                }
+            }
+
+            setConnectors(prevState => {
                 return prevState.concat(cl)
             })
             setActiveSocket(null)
         }
     }
 
-    const handleOnDraggingNode = (event: NodeDragEvent) => {
-        console.log("NodeDragEvent:", event);
+    const handleOnDraggingNode = (nodeEvent: NodeDragEvent) => {
         setActiveSocket(null)
+        setConnectors(prevState => {
+            let cache: { [id: string]: Coordinate } = {}
+            const nextState = prevState.concat()
+            for (let index = 0; index < nextState.length; index++) {
+                const fromSocketID = nextState[index].from.id
+                const toSocketID = nextState[index].to.id
+                const fromNodeID = getNodeIDFromSocketID(fromSocketID)
+                const toNodeID = getNodeIDFromSocketID(toSocketID)
+
+                if (nodeEvent.id === fromNodeID) {
+                    if (cache[fromSocketID]) {
+                        nextState[index].from.position = cache[fromSocketID]
+                    } else {
+                        const { x, y, width, height } = nodeEvent.sockets[fromSocketID].ref.getBoundingClientRect()
+                        const PosX = x + (width / 2)
+                        const PosY = y + (height / 2)
+                        nextState[index].from.position = { x: PosX, y: PosY }
+                        cache[fromSocketID] = { x: PosX, y: PosY }
+                    }
+                }
+
+                if (nodeEvent.id === toNodeID) {
+                    if (cache[toSocketID]) {
+                        nextState[index].to.position = cache[toSocketID]
+                    } else if (nodeEvent.sockets[toSocketID].ref) {
+                        const { x, y, width, height } = nodeEvent.sockets[toSocketID].ref.getBoundingClientRect()
+                        const PosX = x + (width / 2)
+                        const PosY = y + (height / 2)
+                        nextState[index].to.position = { x: PosX, y: PosY }
+                        cache[toSocketID] = { x: PosX, y: PosY }
+                    }
+                }
+            }
+            return nextState
+        })
     }
 
     return <div className={classes.container}>
@@ -129,17 +172,17 @@ function NodeSystem(props: NodeSystemProps) {
             style={{ width: props.width, height: props.height }}
         >
             <BackgroundGrid />
-            <ActiveConnectingLine
+            <ActiveConnector
                 svgRef={svgContainerRef}
                 activeSocket={activeSocket}
                 mouseCoords={{ x: mouseX, y: mouseY }}
             />
-            {connectionLines.map(line =>
-                <ConnectingLine
-                    key={line.id}
+            {connectors.map(conn =>
+                <Connector
+                    key={conn.id}
                     svgRef={svgContainerRef}
-                    from={line.from.position}
-                    to={line.to.position}
+                    from={conn.from.position}
+                    to={conn.to.position}
                 />)}
         </svg>
         <div
@@ -159,7 +202,6 @@ function NodeSystem(props: NodeSystemProps) {
                     { type: VariableType.Number, name: "Value" },
                 ]}
                 activeNodeID={activeNodeID}
-                onCreation={handleOnNewNode}
                 onActive={handleOnSetActive}
                 onDragging={handleOnDraggingNode}
             />
@@ -170,7 +212,16 @@ function NodeSystem(props: NodeSystemProps) {
                 ]}
                 outputs={[]}
                 activeNodeID={activeNodeID}
-                onCreation={handleOnNewNode}
+                onActive={handleOnSetActive}
+                onDragging={handleOnDraggingNode}
+            />
+            <Node
+                title="Preview Two"
+                inputs={[
+                    { type: VariableType.Number, name: "Value" },
+                ]}
+                outputs={[]}
+                activeNodeID={activeNodeID}
                 onActive={handleOnSetActive}
                 onDragging={handleOnDraggingNode}
             />
@@ -178,7 +229,7 @@ function NodeSystem(props: NodeSystemProps) {
     </div>
 }
 
-export default NodeSystem
+export default NodesSystem
 
 function isValidConnection(active: Socket, target: Socket): boolean {
     if (target.type === active.type) {
@@ -203,78 +254,4 @@ function BackgroundGrid() {
         </defs>
         <rect width="100%" height="100%" fill="url(#grid)" />
     </>
-}
-
-interface ConnectingLineProps {
-    svgRef: RefObject<SVGSVGElement>
-    from: Coordinate
-    to: Coordinate
-}
-
-function ConnectingLine({ svgRef, from, to }: ConnectingLineProps) {
-    if (svgRef.current === null) {
-        return null
-    }
-
-    let point = new DOMPoint(from.x, from.y)
-    const svgFromPoint = point.matrixTransform(
-        svgRef.current.getScreenCTM()?.inverse()
-    )
-    point = new DOMPoint(to.x, to.y)
-    const svgToPoint = point.matrixTransform(
-        svgRef.current.getScreenCTM()?.inverse()
-    )
-
-    const fromControlPointX = svgFromPoint.x - 100
-    const toControlPointX = svgToPoint.x + 100
-
-    const instructions = `
-      M ${svgFromPoint.x},${svgFromPoint.y}
-      C ${fromControlPointX},${svgFromPoint.y} ${toControlPointX},${svgToPoint.y} ${svgToPoint.x},${svgToPoint.y}`
-
-    return <path
-        d={instructions}
-        fill="none"
-        stroke="rgb(255, 255, 255)"
-        strokeWidth={5}
-    />
-}
-
-interface ActiveConnectingLineProps {
-    svgRef: RefObject<SVGSVGElement>
-    activeSocket: ActiveSocket | null
-    mouseCoords: Coordinate
-}
-
-function ActiveConnectingLine({ svgRef, activeSocket, mouseCoords }: ActiveConnectingLineProps) {
-    if (svgRef.current === null || activeSocket === null) {
-        return null
-    }
-
-    let point = new DOMPoint(
-        activeSocket.origin.position.x,
-        activeSocket.origin.position.y
-    )
-    const svgFromPoint = point.matrixTransform(
-        svgRef.current.getScreenCTM()?.inverse()
-    )
-    point = new DOMPoint(mouseCoords.x, mouseCoords.y)
-    const svgToPoint = point.matrixTransform(
-        svgRef.current.getScreenCTM()?.inverse()
-    )
-
-    const isInputType = activeSocket.origin.type === SocketType.Input
-    const fromControlPointX = isInputType ? svgFromPoint.x - 100 : svgFromPoint.x + 100
-    const toControlPointX = !isInputType ? svgToPoint.x - 100 : svgToPoint.x + 100
-
-    const instructions = `
-      M ${svgFromPoint.x},${svgFromPoint.y}
-      C ${fromControlPointX},${svgFromPoint.y} ${toControlPointX},${svgToPoint.y} ${svgToPoint.x},${svgToPoint.y}`
-
-    return <path
-        d={instructions}
-        fill="none"
-        stroke="rgb(255, 255, 255)"
-        strokeWidth={5}
-    />
 }

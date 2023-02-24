@@ -1,5 +1,5 @@
-import { MouseEvent, useEffect, useRef, useState } from "react"
-import Socket, { SocketType } from "./Socket"
+import { MouseEvent, useCallback, useEffect, useRef, useState } from "react"
+import Socket, { SocketCreateEvent, SocketType } from "./Socket"
 import classes from "./Node.module.css"
 
 export const enum VariableType {
@@ -17,11 +17,16 @@ export interface Coordinate {
     y: number
 }
 
+interface SocketRef {
+    id: string
+    ref: HTMLDivElement
+}
+
 export interface NodeDragEvent {
     id: number,
     position: Coordinate,
-    sockets?: {
-        [socketID: string]: Coordinate
+    sockets: {
+        [socketID: string]: SocketRef
     }
 }
 
@@ -30,7 +35,6 @@ interface BaseNodeProps {
     inputs: Variable[]
     outputs: Variable[]
     activeNodeID: number
-    onCreation: () => void
     onActive: (id: number) => void
     onDragging: (event: NodeDragEvent) => void
 }
@@ -42,13 +46,12 @@ function Node(props: BaseNodeProps) {
     const [currentPos, setCurrentPos] = useState<Coordinate>({ x: 0, y: 0 })
     const [isDragging, setIsDragging] = useState(false)
     const [currentZIndex, setCurrentZIndex] = useState(1)
+    const [sockets, setSockets] = useState<SocketRef[]>([])
 
     useEffect(() => {
         const newId = Math.floor(Math.random() * 1000)
         setId(newId)
-        // TODO: onCreation Event
-        props.onCreation()
-    }, [props.onCreation])
+    }, [])
 
     useEffect(() => {
         if (isActive(id, props.activeNodeID)) {
@@ -59,6 +62,11 @@ function Node(props: BaseNodeProps) {
     }, [props.activeNodeID])
 
     const handleMouseDown = (event: MouseEvent<HTMLDivElement>) => {
+        const targetElement = event.target as (EventTarget & HTMLElement)
+        if (targetElement.tagName === "SELECT") {
+            setIsDragging(false)
+            return
+        }
         if (!nodeRef.current) {
             return
         }
@@ -75,7 +83,6 @@ function Node(props: BaseNodeProps) {
     }
 
     const handleOnMouseMove = (event: MouseEvent<HTMLDivElement>) => {
-        event.preventDefault()
         if (!isDragging) {
             return
         }
@@ -90,11 +97,23 @@ function Node(props: BaseNodeProps) {
             x: nextPos.x < 0 ? 0 : nextPos.x,
             y: nextPos.y < 0 ? 0 : nextPos.y,
         })
-        props.onDragging({
+        const nodeDragEvent: NodeDragEvent = {
             id: id,
             position: nextPos,
+            sockets: {},
+        }
+        sockets.forEach(s => {
+            nodeDragEvent.sockets[s.id] = s
         })
+        props.onDragging(nodeDragEvent)
     }
+
+    const handleOnSocketCreation = useCallback((event: SocketCreateEvent) => {
+        setSockets(prevState => prevState.concat({
+            id: event.id,
+            ref: event.element
+        }))
+    }, [])
 
     return <div
         id={`${id}`}
@@ -104,16 +123,14 @@ function Node(props: BaseNodeProps) {
             left: currentPos.x,
             top: currentPos.y,
             zIndex: currentZIndex,
+            cursor: isDragging ? "grabbing" : "grab"
         }}
+        onMouseUp={handleRelease}
+        onMouseLeave={handleRelease}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleOnMouseMove}
     >
-        <header
-            className={classes.header}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleOnMouseMove}
-            onMouseUp={handleRelease}
-            onMouseLeave={handleRelease}
-            style={{ cursor: isDragging ? "grabbing" : "grab" }}
-        >
+        <header className={classes.header}>
             <h1>{props.title}</h1>
         </header>
         <div className={classes.body}>
@@ -126,6 +143,7 @@ function Node(props: BaseNodeProps) {
                         active={isActive(id, props.activeNodeID)}
                         type={SocketType.Output}
                         variable={output}
+                        onCreation={handleOnSocketCreation}
                     />
                 )}
             </div>
@@ -146,6 +164,7 @@ function Node(props: BaseNodeProps) {
                         active={isActive(id, props.activeNodeID)}
                         type={SocketType.Input}
                         variable={input}
+                        onCreation={handleOnSocketCreation}
                     />
                 )}
             </div>

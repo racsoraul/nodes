@@ -1,10 +1,16 @@
+import { useEffect, useRef, useState } from "react"
 import { Variable, VariableType } from "./Node"
-import { ElementType } from "./NodeSystem"
+import { ElementType } from "./NodesSystem"
 import classes from "./Socket.module.css"
 
 export const enum SocketType {
     Input,
     Output
+}
+
+export interface SocketCreateEvent {
+    id: string
+    element: HTMLDivElement
 }
 
 interface SocketProps {
@@ -13,12 +19,32 @@ interface SocketProps {
     type: SocketType
     variable: Variable
     active: boolean
+    onCreation: (socketEvent: SocketCreateEvent) => void
 }
 
 function Socket(props: SocketProps) {
+    const [id, setID] = useState("")
+    const ref = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        setID(`${props.nodeID}_${props.type}_${props.variable.type}_${props.index}`)
+    }, [props.nodeID, props.type, props.variable.type, props.index])
+
+    useEffect(() => {
+        if (ref.current === null) {
+            return
+        }
+
+        props.onCreation({
+            id: id,
+            element: ref.current
+        })
+    }, [id, props.onCreation, props.type, ref])
+
     return <div className={`${classes.container} ${props.type === SocketType.Output ? classes.alignToRightBorder : classes.alignToLeftBorder}`}>
         <div
-            id={`${props.nodeID}_${props.type}_${props.variable.type}_${props.index}`}
+            id={id}
+            ref={ref}
             data-element-type={ElementType.Socket}
             className={`${classes.connector} ${props.active ? classes.active : ""}`}
             style={{ backgroundColor: getColorFromType(props.variable.type) }}

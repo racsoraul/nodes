@@ -1,10 +1,10 @@
-import NodesSystem from './NodesSystem/NodesSystem'
+import NodeSystem from './NodeSystem/NodeSystem'
 import classes from "./App.module.css"
 
 function App() {
   return (
     <div className={classes.container}>
-      <NodesSystem width={1000} height={750} />
+      <NodeSystem width={1000} height={750} />
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { RefObject } from "react"
-import { ActiveSocket } from "./NodesSystem"
+import { ActiveSocket } from "./NodeSystem"
 import { Coordinate } from "./Node"
 import { SocketType } from "./Socket"
 

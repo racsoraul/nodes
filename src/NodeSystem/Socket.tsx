@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { Variable, VariableType } from "./Node"
-import { ElementType } from "./NodesSystem"
+import { ElementType } from "./NodeSystem"
 import classes from "./Socket.module.css"
 
 export const enum SocketType {

@@ -3,7 +3,7 @@ import Node, { Coordinate, NodeDragEvent, VariableType } from "./Node"
 import { SocketType, getNodeFromSocketID, getNodeIDFromSocketID, getTypeFromSocketID } from "./Socket"
 import { ActiveConnector, Connector } from "./Connector"
 import useMouseCoords from "../hooks/useMouseCoords"
-import classes from "./NodesSystem.module.css"
+import classes from "./NodeSystem.module.css"
 
 export const enum ElementType {
     Socket = "Socket",
@@ -29,7 +29,7 @@ interface NodeSystemProps {
     height: number
 }
 
-function NodesSystem(props: NodeSystemProps) {
+function NodeSystem(props: NodeSystemProps) {
     const svgContainerRef = useRef<SVGSVGElement>(null)
     const nodesContainerRef = useRef<HTMLDivElement>(null)
     const [activeNodeID, setActiveNodeID] = useState(0)
@@ -229,7 +229,7 @@ function NodesSystem(props: NodeSystemProps) {
     </div>
 }
 
-export default NodesSystem
+export default NodeSystem
 
 function isValidConnection(active: Socket, target: Socket): boolean {
     if (target.type === active.type) {
